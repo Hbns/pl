@@ -19,7 +19,7 @@ is_nought( Nought ) :-
 % is_empty/1 succeeds when its argument is the empty square character in the representation.
 
 is_empty( Empty ) :-
-    Empty = e.
+    Empty = n.
 
 % is_piece/1 succeeds when its argument is either the cross character or the nought character.
 
@@ -27,9 +27,6 @@ is_piece( Piece ) :-
     is_nought( Piece ).
 is_piece( Piece ) :-
     is_cross( Piece ).
-
-%is_board_representation( Board ):-
- %   Board = (row(N1, A1, B1, C1), row(N2, A2, B2, C2), row(N3, A3, B3, C3)).
 
 % other_player/2 succeeds when both its arguments are player representation characters, but they are different.
 
@@ -122,8 +119,81 @@ and_the_winner_is(Board, Player):-
 and_the_winner_is(Board, Player):-
     diagonal(_, Board, dia(_, Player, Player, Player)).
 
+/*no more free squares/1 succeeds if the board represented in its argument has no empty
+squares in it.*/
 
-%%% TEST CODE %%%
+no_more_free_squares(Board):-
+    \+ empty_square(1,1,Board),
+    \+ empty_square(1,2,Board),
+    \+ empty_square(1,3,Board),
+    \+ empty_square(2,1,Board),
+    \+ empty_square(2,2,Board),
+    \+ empty_square(2,3,Board),
+    \+ empty_square(3,1,Board),
+    \+ empty_square(3,2,Board),
+    \+ empty_square(3,3,Board).
+
+
+playHH :-
+    welcome,
+    initial_board( Board ),
+    display_board( Board ),
+    is_cross( Cross ),
+    playHH( Cross, Board ).
+
+/*
+playHH/2 is recursive. It has two arguments: a player, the first, and a board state, the
+second. For this section of the practical, it has three possibilities:
+1. The board represents a winning state, and we have to report the winner. Then we
+are finished.
+2. There are no more free squares on the board, and we have to report a stalemate.
+Again, we are finished.
+3. We can get a (legal) move from the player named in argument 1, fill the square
+he or she gives, switch players, display the board and then play again, with the
+updated board and the new player. */
+
+playHH(Player, Board):-
+    and_the_winner_is(Board, Player),
+    report_winner(Player). 
+
+playHH(_, Board):-
+    no_more_free_squares(Board),
+    report_stalemate.
+
+playHH(Player, Board):-
+    get_legal_move( Player, X, Y, Board ),
+    fill_square( X, Y, Player, Board, NewBoard ),
+    is_nought(Nought),
+    other_player(Player, Nought),
+    display_board(NewBoard),
+    playHH(Nought, NewBoard).
+
+
+test_playHHg(tp, point3):-
+    playHH(x, [row(1,n,n,n),row(2,n,n,n),row(3,n,n,n),
+    col(1,n,n,n),col(2,n,n,n),col(3,n,n,n),
+    dia(top-to-bottom,n,n,n),dia(bottom-to-top,n,n,n)]).
+
+
+
+test_playHHw(tp, point1):-
+    playHH(x,[row(1,n,n,n),row(2,n,n,n),row(3,n,n,n),
+    col(1,n,n,n),col(2,n,n,n),col(3,x,x,x),
+    dia(top-to-bottom,n,n,n),dia(bottom-to-top,n,n,n)]).
+
+test_playHHl(tp, point1):-
+    playHH(x,[row(1,n,n,n),row(2,n,n,n),row(3,n,n,n),
+    col(1,n,n,n),col(2,n,n,n),col(3,n,n,n),
+    dia(top-to-bottom,n,n,n),dia(bottom-to-top,n,n,n)]).
+
+test_playHHs(tp, point2):-
+    playHH(x,[row(1,x,o,x),row(2,x,o,x),row(3,o,x,o),
+    col(1,x,x,o),col(2,o,o,x),col(3,x,x,o),
+    dia(top-to-bottom,x,o,o),dia(bottom-to-top,o,o,x)]).
+
+
+
+%%% only TEST CODE under this line %%%
 
 % testing for winner in a row, column or diagonal.
 test_and_the_winner_is(winner, all_tests):-
