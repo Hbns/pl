@@ -51,9 +51,27 @@ second is a representation of a board state. The third argument will then be a t
 this: col( N, A, B, C ), where N is the column number, and A, B, C are the values
 of the squares in that column.*/
 
-column(Cn, Board, col(N,A,B,C)) :-
-    N=Cn,
-    member(col(N,A,B,C),Board).
+column(Cn, Board, col(N,A,B,C)):-
+    Cn=1,
+    N = Cn,
+    row(1, Board, row(1,A,_,_)),
+    row(2, Board, row(2,B,_,_)),
+    row(3, Board, row(3,C,_,_)).
+
+column(Cn, Board, col(N,A,B,C)):-
+    Cn=2,
+    N = Cn,
+    row(1, Board, row(1,_,A,_)),
+    row(2, Board, row(2,_,B,_)),
+    row(3, Board, row(3,_,C,_)).
+
+column(Cn, Board, col(N,A,B,C)):-
+    Cn=3,
+    N = Cn,
+    row(1, Board, row(1,_,_,A)),
+    row(2, Board, row(2,_,_,B)),
+    row(3, Board, row(3,_,_,C)).
+
 
 /*diagonal/3 succeeds when its first argument is either top to bottom or bottom to top and
 its second is a representation of a board state. The third argument will then be a
@@ -61,9 +79,19 @@ term like this: dia( D, A, B, C ), where D is the direction of the line (as abov
 and A, B, C are the values of the squares in that diagonal. The diagonal direction (eg
 top-to-bottom) is moving from left to right.*/
 
-diagonal(Dn, Board, dia(N,A,B,C)) :-
-    N=Dn,
-    member(dia(N,A,B,C),Board).
+diagonal(D, Board, dia(N,A,B,C)) :-
+    D = top-to-bottom,
+    N = D,
+    row(1, Board, row(1,A,_,_)),
+    row(2, Board, row(2,_,B,_)),
+    row(3, Board, row(3,_,_,C)).
+
+diagonal(D, Board, dia(N,A,B,C)) :-
+    D = bottom-to-top,
+    N = D,
+    row(1, Board, row(1,_,_,C)),
+    row(2, Board, row(2,_,B,_)),
+    row(3, Board, row(3,A,_,_)).
 
 /*square/4 succeeds when its first two arguments are numbers between 1 and 3, and its third
 is a representation of a board state. The fourth argument will then be a term like this:
@@ -133,6 +161,7 @@ no_more_free_squares(Board):-
     \+ empty_square(3,2,Board),
     \+ empty_square(3,3,Board).
 
+% 3.6 Running a game for 2 human players.
 
 playHH :-
     welcome,
@@ -140,6 +169,14 @@ playHH :-
     display_board( Board ),
     is_cross( Cross ),
     playHH( Cross, Board ).
+
+change_player(Player, NewPlayer):-
+    is_cross(Player),
+    is_nought(NewPlayer).
+
+change_player(Player, NewPlayer):-
+    is_nought(Player),
+    is_cross(NewPlayer).
 
 /*
 playHH/2 is recursive. It has two arguments: a player, the first, and a board state, the
@@ -163,37 +200,193 @@ playHH(_, Board):-
 playHH(Player, Board):-
     get_legal_move( Player, X, Y, Board ),
     fill_square( X, Y, Player, Board, NewBoard ),
-    is_nought(Nought),
-    other_player(Player, Nought),
+    change_player(Player, NewPlayer),
     display_board(NewBoard),
-    playHH(Nought, NewBoard).
+    playHH(NewPlayer, NewBoard).
 
+%% 4 Running a game for 1 human and the computer.
+
+playHC :-
+    welcome,
+    initial_board( Board ),
+    display_board( Board ),
+    is_nought( Nought ),
+    playHC( Nought, Board ).
+
+playHC(Player, Board):-
+    and_the_winner_is(Board, Player),
+    report_winner(Player). 
+
+playHC(_, Board):-
+    no_more_free_squares(Board),
+    report_stalemate.
+
+/*The current player is x, we can get a (legal) move, fill the square, display the board,
+and play again, with the new board and with nought as player.
+*/
+
+playHC(Player, Board):-
+    is_cross(Player),
+    get_legal_move( Player, X, Y, Board ),
+    fill_square( X, Y, Player, Board, NewBoard ),
+    change_player(Player, NewPlayer),
+    display_board(NewBoard),
+    playHC(NewPlayer, NewBoard).
+
+/*
+The current player is o, we can choose a move (see below), we tell the user what
+move we’ve made (see io library), we can fill the square, display the board, and
+play again, with the new board and with cross as player.
+*/
+
+playHC(Player, Board):-
+    is_nought(Player),
+    choose_move(Player, X, Y, Board),
+    report_move( Player, X, Y ),
+    fill_square( X, Y, Player, Board, NewBoard ),
+    change_player(Player, NewPlayer),
+    display_board(NewBoard),
+    playHC(NewPlayer, NewBoard).
+
+% defining winning lines.
+% winning rows
+winning_row(1, n, Player, Player).
+winning_row(1, Player, n, Player).
+winning_row(1, n, Player, Player).
+winning_row(2, n, Player, Player).
+winning_row(2, Player, n, Player).
+winning_row(2, n, Player, Player).
+winning_row(2, n, Player, Player).
+winning_row(2, Player, n, Player).
+winning_row(2, n, Player, Player).
+
+% winning columns
+winning_column(1, n, Player, Player).
+winning_column(1, Player, n, Player).
+winning_column(1, n, Player, Player).
+winning_column(2, n, Player, Player).
+winning_column(2, Player, n, Player).
+winning_column(2, n, Player, Player).
+winning_column(2, n, Player, Player).
+winning_column(2, Player, n, Player).
+winning_column(2, n, Player, Player).
+
+% 1. If there is a winning line for self, then take it;
+% TODO
+choose_move(Player, X, Y, Board):-
+    X = 1,
+    member(row(Y,n,Player,Player),Board).
+
+choose_move(Player, X, Y, Board):-
+    X = 2,
+    member(row(Y,Player,n,Player),Board).
+
+choose_move(Player, X, Y, Board):-
+    X = 3,
+    member(row(Y,Player,Player,n),Board).
+
+choose_move(Player, X, Y, Board):-
+    Y = 1,
+    column(X, Board, col(X,n,Player,Player)).
+
+choose_move(Player, X, Y, Board):-
+    Y = 2,
+    column(X, Board, col(X,Player,n,Player)).
+
+choose_move(Player, X, Y, Board):-
+    Y = 3,
+    column(X, Board, col(X,Player,Player,n)).
+
+choose_move(Player, X, Y, Board):-
+    X = 1,
+    Y = 1,
+    D = top-to-bottom,
+    diagonal(D, Board, dia(D,n,Player,Player)).
+
+choose_move(Player, X, Y, Board):-
+    X = 2,
+    Y = 2,
+    D = top-to-bottom,
+    diagonal(D, Board, dia(D,Player,n,Player)).
+
+choose_move(Player, X, Y, Board):-
+    X = 3,
+    Y = 3,
+    D = top-to-bottom,
+    diagonal(D, Board, dia(D,Player,Player,n)).
+
+choose_move(Player, X, Y, Board):-
+    X = 1,
+    Y = 3,
+    D = bottom-to-top,
+    diagonal(D, Board, dia(D,n,Player,Player)).
+
+choose_move(Player, X, Y, Board):-
+    X = 2,
+    Y = 2,
+    D = bottom-to-top,
+    diagonal(D, Board, dia(D,Player,n,Player)).
+
+choose_move(Player, X, Y, Board):-
+    X = 3,
+    Y = 1,
+    D = bottom-to-top,
+    diagonal(D, Board, dia(D,Player,Player,n)).
+
+
+
+% 2. If there is a winning line for opponent, then block it;
+
+%TODO
+/*
+% 3. If the middle space is free, then take it;
+choose_move(_, X,Y,Board):-
+    X = 2,
+    Y = 2,
+    empty_square(X,Y, Board).
+
+% 4. If there is a corner space free, then take it;
+choose_move(_, X,Y,Board):-
+    X = 3,
+    Y = 3,
+    empty_square(X,Y, Board).
+
+choose_move(_, X,Y,Board):-
+    X = 3,
+    Y = 1,
+    empty_square(X,Y, Board).
+
+choose_move(_, X,Y,Board):-
+    X = 1,
+    Y = 3,
+    empty_square(X,Y, Board).
+
+choose_move(_, X,Y,Board):-
+    X = 3,
+    Y = 1,
+    empty_square(X,Y, Board).
+
+% 5. Otherwise, dumbly choose the next available space.
+choose_move( _, X, Y, Board ):-
+    empty_square( X, Y, Board ).
+*/
+% 5.1 Spotting a stalemate.
+
+/*possible win/2 is recursive. It succeeds if the addition of one square to the board (rep-
+resented in the second argument) yields a win for a player (represented in the first
+argument). Alternatively, it succeeds if the result of adding one square to the board
+leads to a possible win, swapping players as it goes. In total, it succeeds if any player
+can win from the current position, allowing for whose move it is now.*/
+
+
+/*playSS/2 We replace the second step of playHH/2 or playHC/2 above as follows:
+2. If no possible win is available, report a stalemate. Then we have finished.*/
+
+
+%%% only TEST CODE underneath.. %%%
 
 test_playHHg(tp, point3):-
-    playHH(x, [row(1,n,n,n),row(2,n,n,n),row(3,n,n,n),
-    col(1,n,n,n),col(2,n,n,n),col(3,n,n,n),
-    dia(top-to-bottom,n,n,n),dia(bottom-to-top,n,n,n)]).
-
-
-
-test_playHHw(tp, point1):-
-    playHH(x,[row(1,n,n,n),row(2,n,n,n),row(3,n,n,n),
-    col(1,n,n,n),col(2,n,n,n),col(3,x,x,x),
-    dia(top-to-bottom,n,n,n),dia(bottom-to-top,n,n,n)]).
-
-test_playHHl(tp, point1):-
-    playHH(x,[row(1,n,n,n),row(2,n,n,n),row(3,n,n,n),
-    col(1,n,n,n),col(2,n,n,n),col(3,n,n,n),
-    dia(top-to-bottom,n,n,n),dia(bottom-to-top,n,n,n)]).
-
-test_playHHs(tp, point2):-
-    playHH(x,[row(1,x,o,x),row(2,x,o,x),row(3,o,x,o),
-    col(1,x,x,o),col(2,o,o,x),col(3,x,x,o),
-    dia(top-to-bottom,x,o,o),dia(bottom-to-top,o,o,x)]).
-
-
-
-%%% only TEST CODE under this line %%%
+    playHH(x, [row(1,n,n,n),row(2,n,n,n),row(3,n,n,n)]).
 
 % testing for winner in a row, column or diagonal.
 test_and_the_winner_is(winner, all_tests):-
