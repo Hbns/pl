@@ -248,31 +248,11 @@ playHC(Player, Board):-
     display_board(NewBoard),
     playHC(NewPlayer, NewBoard).
 
-% defining winning lines.
-% winning rows
-winning_row(1, n, Player, Player).
-winning_row(1, Player, n, Player).
-winning_row(1, n, Player, Player).
-winning_row(2, n, Player, Player).
-winning_row(2, Player, n, Player).
-winning_row(2, n, Player, Player).
-winning_row(2, n, Player, Player).
-winning_row(2, Player, n, Player).
-winning_row(2, n, Player, Player).
-
-% winning columns
-winning_column(1, n, Player, Player).
-winning_column(1, Player, n, Player).
-winning_column(1, n, Player, Player).
-winning_column(2, n, Player, Player).
-winning_column(2, Player, n, Player).
-winning_column(2, n, Player, Player).
-winning_column(2, n, Player, Player).
-winning_column(2, Player, n, Player).
-winning_column(2, n, Player, Player).
+%% 5 Implementing the heuristics %%
 
 % 1. If there is a winning line for self, then take it;
-% TODO
+
+% winning horizontal line?
 choose_move(Player, X, Y, Board):-
     X = 1,
     member(row(Y,n,Player,Player),Board).
@@ -285,6 +265,7 @@ choose_move(Player, X, Y, Board):-
     X = 3,
     member(row(Y,Player,Player,n),Board).
 
+% winning vertical line? 
 choose_move(Player, X, Y, Board):-
     Y = 1,
     column(X, Board, col(X,n,Player,Player)).
@@ -297,6 +278,7 @@ choose_move(Player, X, Y, Board):-
     Y = 3,
     column(X, Board, col(X,Player,Player,n)).
 
+% winning diagonal line?
 choose_move(Player, X, Y, Board):-
     X = 1,
     Y = 1,
@@ -332,13 +314,84 @@ choose_move(Player, X, Y, Board):-
     Y = 1,
     D = bottom-to-top,
     diagonal(D, Board, dia(D,Player,Player,n)).
-
-
 
 % 2. If there is a winning line for opponent, then block it;
 
-%TODO
-/*
+% winning horizontal line for opponent? 
+choose_move(Player, X, Y, Board):-
+    change_player(Player, Opponent),
+    X = 1,
+    member(row(Y,n,Opponent,Opponent),Board).
+
+choose_move(Player, X, Y, Board):-
+    change_player(Player, Opponent),
+    X = 2,
+    member(row(Y,Opponent,n,Opponent),Board).
+
+choose_move(Player, X, Y, Board):-
+    change_player(Player, Opponent),
+    X = 3,
+    member(row(Y,Opponent,Opponent,n),Board).
+
+% winning vertical line for opponent? 
+choose_move(Player, X, Y, Board):-
+    change_player(Player, Opponent),
+    Y = 1,
+    column(X, Board, col(X,n,Opponent,Opponent)).
+
+choose_move(Player, X, Y, Board):-
+    change_player(Player, Opponent),
+    Y = 2,
+    column(X, Board, col(X,Opponent,n,Opponent)).
+
+choose_move(Player, X, Y, Board):-
+    change_player(Player, Opponent),
+    Y = 3,
+    column(X, Board, col(X,Opponent,Opponent,n)).
+
+% winning diagonal line for Opponent?
+choose_move(Player, X, Y, Board):-
+    change_player(Player, Opponent),
+    X = 1,
+    Y = 1,
+    D = top-to-bottom,
+    diagonal(D, Board, dia(D,n,Opponent,Opponent)).
+
+choose_move(Player, X, Y, Board):-
+    change_player(Player, Opponent),
+    X = 2,
+    Y = 2,
+    D = top-to-bottom,
+    diagonal(D, Board, dia(D,Opponent,n,Opponent)).
+
+choose_move(Player, X, Y, Board):-
+    change_player(Player, Opponent),
+    X = 3,
+    Y = 3,
+    D = top-to-bottom,
+    diagonal(D, Board, dia(D,Opponent,Opponent,n)).
+
+choose_move(Player, X, Y, Board):-
+    change_player(Player, Opponent),
+    X = 1,
+    Y = 3,
+    D = bottom-to-top,
+    diagonal(D, Board, dia(D,n,Opponent,Opponent)).
+
+choose_move(Player, X, Y, Board):-
+    change_player(Player, Opponent),
+    X = 2,
+    Y = 2,
+    D = bottom-to-top,
+    diagonal(D, Board, dia(D,Opponent,n,Opponent)).
+
+choose_move(Player, X, Y, Board):-
+    change_player(Player, Opponent),
+    X = 3,
+    Y = 1,
+    D = bottom-to-top,
+    diagonal(D, Board, dia(D,Opponent,Opponent,n)).
+
 % 3. If the middle space is free, then take it;
 choose_move(_, X,Y,Board):-
     X = 2,
@@ -369,8 +422,37 @@ choose_move(_, X,Y,Board):-
 % 5. Otherwise, dumbly choose the next available space.
 choose_move( _, X, Y, Board ):-
     empty_square( X, Y, Board ).
-*/
+
 % 5.1 Spotting a stalemate.
+
+playSS :-
+    welcome,
+    initial_board( Board ),
+    display_board( Board ),
+    is_nought( Nought ),
+    playHC( Nought, Board ).
+
+playSS(Player, Board):-
+    and_the_winner_is(Board, Player),
+    report_winner(Player). 
+
+/*playSS/2 We replace the second step of playHH/2 or playHC/2 above as follows:
+2. If no possible win is available, report a stalemate. Then we have finished.*/
+playSS(Player, Board):-
+    \+ possible_win(Player, Board),
+    report_stalemate.
+
+/*The current player is x, we can get a (legal) move, fill the square, display the board,
+and play again, with the new board and with nought as player.
+*/
+
+playSS(Player, Board):-
+    is_cross(Player),
+    get_legal_move( Player, X, Y, Board ),
+    fill_square( X, Y, Player, Board, NewBoard ),
+    change_player(Player, NewPlayer),
+    display_board(NewBoard),
+    playSS(NewPlayer, NewBoard).
 
 /*possible win/2 is recursive. It succeeds if the addition of one square to the board (rep-
 resented in the second argument) yields a win for a player (represented in the first
@@ -378,9 +460,9 @@ argument). Alternatively, it succeeds if the result of adding one square to the 
 leads to a possible win, swapping players as it goes. In total, it succeeds if any player
 can win from the current position, allowing for whose move it is now.*/
 
-
-/*playSS/2 We replace the second step of playHH/2 or playHC/2 above as follows:
-2. If no possible win is available, report a stalemate. Then we have finished.*/
+possible_win(Player, square(X, Y, Board, squ( X, Y, Player))):-
+    fill_square( X, Y, Player, Board, NewBoard ),
+    and_the_winner_is(NewBoard, Player).
 
 
 %%% only TEST CODE underneath.. %%%
