@@ -482,9 +482,8 @@ playSS(Player, Board):-
 
 % 2. If no possible win is available, report a stalemate. 
 playSS(Player, Board):-
-    possible_win(Player, Board),
+    \+ possible_win(Player, Board),
     report_stalemate.
-
 
 % 3. The current player is x, we can get a (legal) move, fill the square, display the board,
 % and play again, with the new board and with nought as player.
@@ -499,18 +498,24 @@ playSS(Player, Board):-
 
 /*
 possible_win(?Player, ?Board)
-possible win/2 is recursive. It succeeds if the addition of one square to the board (rep-
-resented in the second argument) yields a win for a player (represented in the first
-argument). Alternatively, it succeeds if the result of adding one square to the board
-leads to a possible win, swapping players as it goes. In total, it succeeds if any player
+possible win/2 is recursive. In total, it succeeds if any player
 can win from the current position, allowing for whose move it is now.
 */
 
+% This succeeds if the addition of one square to the board (represented in the second argument)
+% yields a win for a player (represented in the first argument).
 possible_win(Player, Board):-
     choose_move(Player, X,Y, Board),
     fill_square( X, Y, Player, Board, NewBoard ),
-    and_the_winner_is(NewBoard, Player),
-    possible_win(Player, NewBoard).
+    and_the_winner_is(NewBoard, Player).
+    
+%it succeeds if the result of adding one square to the board leads to a possible win, 
+% swapping players as it goes.
+possible_win(Player, Board):-
+    change_player(Player, Opponent),
+    choose_move(Opponent, X,Y, Board),
+    fill_square( X, Y, Opponent, Board, NewBoard ),
+    and_the_winner_is(NewBoard, Opponent).
 
 
 %%% only TEST CODE underneath.. %%%
