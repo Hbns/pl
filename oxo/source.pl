@@ -60,7 +60,7 @@ of the squares in that column.
 column(Cn, Board, col(N,A,B,C)):-
     Cn = 1,
     N = Cn,
-    row(1, Board, row(1,A,_,_)), /* could have used nth1 on column number */
+    row(1, Board, row(1,A,_,_)),
     row(2, Board, row(2,B,_,_)),
     row(3, Board, row(3,C,_,_)).
 
@@ -221,7 +221,6 @@ playHH(Player, Board):-
 
 % 2. There are no more free squares on the board, and we have to report a stalemate.
 playHH(_, Board):-
-    \+ and_the_winner_is(Board,_), /* added in class, make sure it is mutualy exculive */
     no_more_free_squares(Board),
     report_stalemate.
 
