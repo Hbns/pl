@@ -10,18 +10,22 @@
 */
 
 % 24 permutaiotns are possible for 4 elements?
-reservation --> persons , time , date , menu.
 
-persons --> [for] ,number_of_people.
-number_of_people --> [X], {integer(X), X < 5}.
+reservation(P, T, D, M) --> persons(P) , time(T) , date(D) , menu(M).
 
-time --> [at] ,req_time.
+persons(P) --> [for] ,number_of_people(P).
+number_of_people(P) --> [P], {integer(P), P < 5}.
 
-req_time --> start_time.
-start_time --> [X], {integer(X)}.
+time(T) --> [at] ,req_time(T).
 
-date --> [on] ,req_date.
-req_date --> [X], {integer(X)}.
+req_time(T) --> start_time(T).
+start_time(T) --> [T], {integer(T)}.
 
-menu --> [standard, menu].
-menu --> [theatre, menu].
+date(D) --> [on] ,req_date(D).
+req_date(D) --> [D], {integer(D)}.
+
+menu(M) --> [M, menu].
+menu(M) --> [M, menu].
+
+
+% reservation(P, [for, 2, at, 20, on, 17, standard, menu],[]).
