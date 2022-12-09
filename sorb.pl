@@ -9,17 +9,26 @@
 [reservation,for,7,on,march,18,preferably,for,standard,menu,at,7,oclock]
 */
 
-% 24 permutaiotns are possible for 4 elements?
+% 24 permutations are possible for 4 elements?
 
-reservation(P, T, D, M) --> persons(P) , time(T) , date(D) , menu(M).
+reservation(X1, X2, X3, X4) --> no_information, information(X1), no_information, information(X2), 
+no_information, information(X3), no_information, information(X4), no_information.
+
+information(P) --> persons(P).
+information(T) --> time(T).
+information(D) --> date(D).
+information(M) --> menu(M).
+
+no_information --> \+ persons(_), \+ time(_), \+ date(_), \+ menu(_).
+no_information --> [].
+no_information --> [_].
+no_information --> [_], no_information.
 
 persons(P) --> [for] ,number_of_people(P).
 number_of_people(P) --> [P], {integer(P), P < 5}.
 
 time(T) --> [at] ,req_time(T).
-
-req_time(T) --> start_time(T).
-start_time(T) --> [T], {integer(T)}.
+req_time(T) --> [T], {integer(T)}.
 
 date(D) --> [on] ,req_date(D).
 req_date(D) --> [D], {integer(D)}.
@@ -29,3 +38,4 @@ menu(M) --> [M, menu].
 
 
 % reservation(P, [for, 2, at, 20, on, 17, standard, menu],[]).
+% reservation(P, T, D, M,[blibla, for, 2,and, at, 20, andso, indeed, on, 17, hello, standard, menu],[]).
