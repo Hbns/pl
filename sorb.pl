@@ -53,6 +53,14 @@ menu(M) --> [M, menu].
 % eat time = 1h for theatre menu, 2h for std menu
 % the restaurant optimizes bookings, eg: prefer max persons
 
+book_tables(DiningList) :-
+    length(DiningList, 12), % 4 theather menus times 3 tables.
+    length(Dinings, 12),
+    all_different(Dinings),
+    constrain_dinings(Dinings, Variables, DiningList),
+    link_dinings(DiningList),
+    labeling([ffc],Variables).
+
 constrain_time(T):-
 T in 19..22.
 
@@ -62,24 +70,41 @@ constrain_table_number(N):-
 % table(table_number, persons, time, date, menu)
 % :- block table(-,-,-,-,-).
 
+tables(3).
+
 table(1, Persons, Time, Date, Menu).
 table(2, Persons, Time, Date, Menu).
 table(3, Persons, Time, Date, Menu).
 
 % dining(persons, time, date, menu)
 
-dining(Persons, Time, Date, Menu).
+dining(1,1).
+dining(1,2).
+
+% should recieve this from dcg.
+dining(Dnumber, Persons, Time, Date, Menu).
 
 constrain_dinings([],[],[]).
-constrain_dinings([Dining|Dinings], [Time, Menu, Table | Variables], [dining(Persons, Time, Date, Menu)|DiningList]):-
-    Time in 19..22,
-    Menu in 1..2,
-    Table in 1..3,
-    constrain_dinings(Dinings, Variables, DiningList).
+constrain_dinings([Dining|Dinings],
+    [Time, Menu, Table | Variables],% variables to drive constrained search, wat we want to fin out.
+    [dining(Dnumber, Persons, Date, Time, Menu, Table)|DiningList]):-
+        dining(Dnumber, Persons, Time, Date, Menu),
+        tables(MaxTables),
+        Time in 19..22,
+        Menu in 1..2, %1h theatre menu eating time, standard menu 2h eating time.
+        Table in 1..3,
+        constrain_dinings(Dinings, Variables, DiningList).
 
 link_dinings([]).
 link_dinings([_]).
-link_dinings()
+link_dinings( [dining(_, Persons1, Date1, Time1, Menu1, Table1),
+        dining(Dining2, Persons2, Date2, Time2, Menu2, Table2 )|Dinings]):-
+            Table2 #>= Table1,
+            Table2 #=< Table1 + 1,
+            (Table1 #= Table2) #==> (Time1 #\ Time2),
+            link_dinings([dining(Dining2, Persons2, Date2, Time2, Menu2, Table2 )|Dinings]).
+
+
     
 
 
