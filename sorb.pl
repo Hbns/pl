@@ -23,6 +23,8 @@ reservation(A, B, C, D, [reservation,for,7,on,march,18,preferably,for,standard,m
 */
 
 % -> translate list of inputs with dcg
+% look at list operations, difference lists
+
 
 
 reservation(A,B,C,D) --> reservation_part(A), reservation_part(B), reservation_part(C), reservation_part(D).
@@ -36,7 +38,6 @@ reservation_part(_) --> [].
 information(date(D)) --> date(D).
 information(persons(P)) --> persons(P).
 information(menu(M)) --> menu(M).
-% information(menu(M)) --> menu(M).
 information(time(T)) --> time(T).
 
 no_information --> \+ persons(_), \+ time(_), \+ date(_), \+ menu(_).
@@ -47,7 +48,7 @@ no_information --> [_], no_information.
 persons(P) --> [for] ,number_of_people(P).
 persons(P) --> number_of_people(P), [people].
 persons(P) --> number_of_people(P), [of, us].
-number_of_people(P) --> [P], {integer(P), P < 5}. % reservations not fitting one table(P<5) are not allowed.
+number_of_people(P) --> [P], {integer(P)}.
 number_of_people(P) --> [a, party, of], number_of_people(P).
 
 % preferably? 
@@ -72,51 +73,28 @@ menu(M) --> [M, menu].
 % eat time = 1h for theatre menu, 2h for standard menu
 % the restaurant optimizes bookings, eg: prefer max persons
 
-res_request(3,1,18).
+% "received" dining requests
 
-% dining(dnumber, menu)
+:- block res_request(-,-,-,-,-).
 
-:- block dining(-,-).
-% table1
-dining(1,1).
-dining(1,2).
-dining(2,1).
-dining(2,2).
-dining(3,1).
-dining(3,2).
-dining(4,1).
+res_request(1,2,20,18,_).
+res_request(2,5,8,18,_).
+res_request(3,3,_,18,1).
+res_request(4,2,_,18,2).
+res_request(5,4,_,18,2).
+res_request(6,9,_,18,_).
+res_request(7,6,20,18,_).
+res_request(8,7,7,18,2).
 
-% table2
-dining(5,1).
-dining(5,2).
-dining(6,1).
-dining(6,2).
-dining(7,1).
-dining(7,2).
-dining(8,1).
-
-% table3
-dining(9,1).
-dining(9,2).
-dining(10,1).
-dining(10,2).
-dining(11,1).
-dining(11,2).
-dining(12,1).
-
-%number of tables
-tables(3).
 
 constrain_dinings([],[],[]).
 constrain_dinings([Dining|Dinings],
     [Time, Menu | Variables],% variables to drive constrained search, wat we want to find out.
     [dining(Dnumber, Persons, Date, Time, Menu)|DiningList]):-
-        dining(Dnumber, Menu),
-        %res_request(Persons, Menu, Date),
-        tables(MaxTables),
-        Persons in 1..4,
+        res_request(Dnumber, Persons, Menu, Time, Date),
+        Persons in 1..10,
         Date in 15..20,
-        Time in 19..22,
+        Time in 7..22,
         Menu in 1..2, %1h theatre menu eating time, standard menu 2h eating time.
         constrain_dinings(Dinings, Variables, DiningList).
 
@@ -124,16 +102,16 @@ link_dinings([]).
 link_dinings([_]).
 link_dinings( [dining(Dining1, Persons1, Date1, Time1, Menu1),
         dining(Dining2, Persons2, Date2, Time2, Menu2)|Dinings]):-
-            Dining2 #> Dining1,
+            Dining2 #\ Dining1,
             %Time2 #> Time1,
-            ( Menu1 #= 1 ) #<==> ( Time2 #= Time1 + 1 ),
+            %( Menu1 #= 1 ) #<==> ( Time2 #= Time1 + 1 ),
             %( Menu1 #= 2 ) #==> ( Time2 #= Time1 + 2 ),
             link_dinings([dining(Dining2, Persons2, Date2, Time2, Menu2)|Dinings]).
 
 book_tables(DiningList) :-
-            length(DiningList, 12), % 4 theather menus times 3 tables, a maximum of 12 dinings per evening.
-            length(Dinings, 12),
-            all_different(Dinings), % do not double book a dining slot.
+            length(DiningList, 8), % 4 theather menus times 3 tables, a maximum of 12 dinings per evening.
+            length(Dinings, 8),
+            all_distinct(Dinings),
             constrain_dinings(Dinings, Variables, DiningList),
             link_dinings(DiningList),
             labeling([ffc],Variables).
