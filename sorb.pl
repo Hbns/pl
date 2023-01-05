@@ -1,28 +1,6 @@
-/* use these as input
-
-list_of_inputs:
-
-[[table,for,2,at,20,’:’,00,on,18,march],
-[we,would,like,a,table,for,5,preferably,at,8,pm,on,18,’/’,03],
-[please,can,we,have,a,table,for,3,for,the,theatre,menu,on,march,18,th],
-[can,i,book,a,table,at,9,pm,for,2,people,on,the,18,th,of,march,for,the,standard,menu,please],
-[reserve,us,a,table,on,march,18,for,a,party,of,4,for,the,standard,menu]
-[9,people,on,18,th,of,march],
-[book,6,of,us,in,on,18,march,at,20,’:’,00],
-[reservation,for,7,on,march,18,preferably,for,standard,menu,at,7,oclock]]
-
-reservation(A, B, C, D, [table,for,2,at,20,’:’,00,on,18,march],[]).
-reservation(A, B, C, D, [we,would,like,a,table,for,5,preferably,at,8,pm,on,18,’/’,03],[]).
-reservation(A, B, C, D, [please,can,we,have,a,table,for,3,for,the,theatre,menu,on,march,18,th],[]).
-reservation(A, B, C, D, [can,i,book,a,table,at,9,pm,for,2,people,on,the,18,th,of,march,for,the,standard,menu,please],[]).
-reservation(A, B, C, D, [reserve,us,a,table,on,march,18,for,a,party,of,4,for,the,standard,menu],[]).
-reservation(A, B, C, D, [9,people,on,18,th,of,march],[]).
-reservation(A, B, C, D, [book,6,of,us,in,on,18,march,at,20,’:’,00],[]).
-reservation(A, B, C, D, [reservation,for,7,on,march,18,preferably,for,standard,menu,at,7,oclock],[]).
-
-*/
 % test_dcg(+Input_phrase, -Output_list)
 % test_dcg returns the input_phrase after applying the dcg as a list with relevant information.
+% eg: test_dcg([can,i,book,a,table,at,9,pm,for,2,people,on,the,18,th,of,march,for,the,standard,menu,please], Out).
 test_dcg(Input_phrase, Output_list):-
     reservation(Output_list, Input_phrase, []).
 
@@ -41,8 +19,7 @@ convert_input([[table,for,2,at,20,’:’,00,on,18,march],
 [reserve,us,a,table,on,march,18,for,a,party,of,4,for,the,standard,menu],
 [9,people,on,18,th,of,march],
 [book,6,of,us,in,on,18,march,at,20,’:’,00],
-[reservation,for,7,on,march,18,preferably,for,standard,menu,at,7,oclock]], Answer).
-
+[reservation,for,7,on,march,18,preferably,for,standard,menu,at,7,oclock]], Conversions).
 */
 
 %% DCG %%
@@ -71,7 +48,6 @@ persons(P) --> number_of_people(P), [of, us].
 number_of_people(P) --> [P], {integer(P)}.
 number_of_people(P) --> [a, party, of], number_of_people(P).
 
-% preferably? 
 time(T) --> [at] ,req_time(T).
 req_time(T) --> [T], {integer(T)}.
 
@@ -80,8 +56,6 @@ req_date(D) --> [D], {integer(D)}.
 req_date(D) --> [_Word], req_date(D).
 
 menu(M) --> [M, menu].
-
-
 
 %% Constraint System %%
 :- use_module( [library(clpfd),library(lists)] ).
@@ -94,8 +68,8 @@ menu(M) --> [M, menu].
 % the restaurant optimizes bookings, eg: prefer max persons
 
 % the constrained system was based around the box stacking example in the lecture slides.
-% I did not understand how I could do this input_phrase per input_phrase.
-% the resulting solution is not general, eg: I have to specify how many correct answers there will be.
+% I did not understand how I could do this input_phrase per input_phrase?
+% the resulting solution is not general, eg: I have to specify how many correct answers there will be,.
 
 test_constraints():-
     book_tables(_).
@@ -114,8 +88,10 @@ res_request(6,9,_,18,_).
 res_request(7,6,20,18,_).
 res_request(8,7,7,18,2).
 
+% constrain_dinings(-Dinings, -Variables, -DiningList)
+% Returns a constrained list of dinings.
 constrain_dinings([],[],[]).
-constrain_dinings([Dining|Dinings],
+constrain_dinings([_Dining|Dinings],
     [Time, Menu | Variables],% variables to drive constrained search, wat we want to find out.
     [dining(Dnumber, Persons, Date, Time, Menu)|DiningList]):-
         res_request(Dnumber, Persons, Time, Date, Menu),
@@ -125,15 +101,19 @@ constrain_dinings([Dining|Dinings],
         Menu in 1..2, %1h theatre menu eating time, standard menu 2h eating time.
         constrain_dinings(Dinings, Variables, DiningList).
 
+% link_dinings(-Dinings)
+% link_dinings sets constraints between the dinings.
 link_dinings([]).
 link_dinings([_]).
-link_dinings( [dining(Dining1, Persons1, Date1, Time1, Menu1),
+link_dinings( [dining(Dining1, _Persons1, _Date1, Time1, Menu1),
         dining(Dining2, Persons2, Date2, Time2, Menu2)|Dinings]):-
             Dining2 #> Dining1, % order the dinings.
             ( Menu1 #= 2 ) #<==> ( Time1 #< 22), % when choosing menu 2, latest dinner time is 21h.
-            % not sure how to constrain a maximum of 3 similar Time slots, since only 3 tables??
+            % not sure how to constrain a maximum of 3 similar Time slots, since only 3 tables?
             link_dinings([dining(Dining2, Persons2, Date2, Time2, Menu2)|Dinings]).
 
+% book_tables(-DiningList)
+% brings the contraints together and returns a list with a valid planning.
 book_tables(DiningList) :-
             length(DiningList, 4), % must be number of valid requests, use list size?
             length(Dinings, 4),
@@ -157,7 +137,7 @@ print_reservations([Dining|Dinings]):-
 % test_all() runs phase 2 and 3 of the programm.
 test_all():-
     % DCG
-    % the information to the book_tables constraints are facts in this programm.
+    % the resrevation information used by book_tables constraints are facts in this programm.
     % Constraints
     book_tables(DiningList),
     % Display
