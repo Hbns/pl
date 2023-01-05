@@ -119,6 +119,7 @@ constrain_dinings([Dining|Dinings],
     [Time, Menu | Variables],% variables to drive constrained search, wat we want to find out.
     [dining(Dnumber, Persons, Date, Time, Menu)|DiningList]):-
         res_request(Dnumber, Persons, Time, Date, Menu),
+        %Table in 1..3,
         Persons in 2..4,
         Time in 19..22,
         Menu in 1..2, %1h theatre menu eating time, standard menu 2h eating time.
@@ -129,9 +130,8 @@ link_dinings([_]).
 link_dinings( [dining(Dining1, Persons1, Date1, Time1, Menu1),
         dining(Dining2, Persons2, Date2, Time2, Menu2)|Dinings]):-
             Dining2 #> Dining1, % order the dinings.
-            %Time2 #> Time1,
-            %( Menu1 #= 1 ) #<==> ( Time2 #= Time1 + 1 ),
             ( Menu1 #= 2 ) #<==> ( Time1 #< 22), % when choosing menu 2, latest dinner time is 21h.
+            % not sure how to constrain a maximum of 3 similar Time slots, since only 3 tables??
             link_dinings([dining(Dining2, Persons2, Date2, Time2, Menu2)|Dinings]).
 
 book_tables(DiningList) :-
@@ -141,12 +141,27 @@ book_tables(DiningList) :-
             constrain_dinings(Dinings, Variables, DiningList),
             link_dinings(DiningList),
             labeling([ffc],Variables).
-    
-
+   
+% returned by book_tables:
 % DiningList = [dining(1, 2, 18, 20, 2), dining(3, 3, 18, 22, 1), dining(4, 2, 18, 19, 2), dining(5, 4, 18, 19, 2)]
 
+% print_reservations(+Dinings)
+% given a list of dinings, each dining will be printed on a new line.
+print_reservations([]).
+print_reservations([Dining|Dinings]):-
+    dining(Dnumber, Persons, Date, Time, Menu) = Dining,
+    format("~w~w~w~w~w~w~w~w~w~w~n", ["Reservationnumber: ",Dnumber,", Date: ", Date, ", Time: ", 
+        Time, ", Persons: ", Persons, ", Menu: ", Menu]),
+    print_reservations(Dinings).
 
-
+% test_all() runs phase 2 and 3 of the programm.
+test_all():-
+    % DCG
+    % the information to the book_tables constraints are facts in this programm.
+    % Constraints
+    book_tables(DiningList),
+    % Display
+    print_reservations(DiningList).
 
 
 
