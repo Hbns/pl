@@ -21,13 +21,16 @@ reservation(A, B, C, D, [book,6,of,us,in,on,18,march,at,20,’:’,00],[]).
 reservation(A, B, C, D, [reservation,for,7,on,march,18,preferably,for,standard,menu,at,7,oclock],[]).
 
 */
+% test_dcg(+Input_phrase, -Output_list)
+% test_dcg returns the input_phrase after applying the dcg as a list with relevant information.
+test_dcg(Input_phrase, Output_list):-
+    reservation(Output_list, Input_phrase, []).
+    
+   
 
-% -> translate list of inputs with dcg
-% look at list operations, difference lists
 
 
-
-reservation(A,B,C,D) --> reservation_part(A), reservation_part(B), reservation_part(C), reservation_part(D).
+reservation([A, B, C, D]) --> reservation_part(A), reservation_part(B), reservation_part(C), reservation_part(D).
 
 reservation_part(A) --> no_information, information(A), no_information.
 reservation_part(B) --> no_information, information(B), no_information.
@@ -77,6 +80,7 @@ menu(M) --> [M, menu].
 
 :- block res_request(-,-,-,-,-).
 
+% 4 valid reservations (where 1 < persons < 5)
 res_request(1,2,20,18,_).
 res_request(2,5,8,18,_).
 res_request(3,3,_,18,1).
@@ -91,10 +95,9 @@ constrain_dinings([],[],[]).
 constrain_dinings([Dining|Dinings],
     [Time, Menu | Variables],% variables to drive constrained search, wat we want to find out.
     [dining(Dnumber, Persons, Date, Time, Menu)|DiningList]):-
-        res_request(Dnumber, Persons, Menu, Time, Date),
-        Persons in 1..10,
-        Date in 15..20,
-        Time in 7..22,
+        res_request(Dnumber, Persons, Time, Date, Menu),
+        Persons in 2..4,
+        Time in 19..22,
         Menu in 1..2, %1h theatre menu eating time, standard menu 2h eating time.
         constrain_dinings(Dinings, Variables, DiningList).
 
@@ -102,30 +105,23 @@ link_dinings([]).
 link_dinings([_]).
 link_dinings( [dining(Dining1, Persons1, Date1, Time1, Menu1),
         dining(Dining2, Persons2, Date2, Time2, Menu2)|Dinings]):-
-            Dining2 #\ Dining1,
+            Dining2 #> Dining1, % order the dinings.
             %Time2 #> Time1,
             %( Menu1 #= 1 ) #<==> ( Time2 #= Time1 + 1 ),
-            %( Menu1 #= 2 ) #==> ( Time2 #= Time1 + 2 ),
+            ( Menu1 #= 2 ) #<==> ( Time1 #< 22), % when choosing menu 2, latest dinner time is 21h.
             link_dinings([dining(Dining2, Persons2, Date2, Time2, Menu2)|Dinings]).
 
 book_tables(DiningList) :-
-            length(DiningList, 8), % 4 theather menus times 3 tables, a maximum of 12 dinings per evening.
-            length(Dinings, 8),
+            length(DiningList, 4), % must be number of valid requests, use list size?
+            length(Dinings, 4),
             all_distinct(Dinings),
             constrain_dinings(Dinings, Variables, DiningList),
             link_dinings(DiningList),
             labeling([ffc],Variables).
     
 
+% DiningList = [dining(1, 2, 18, 20, 2), dining(3, 3, 18, 22, 1), dining(4, 2, 18, 19, 2), dining(5, 4, 18, 19, 2)]
 
-% control order => table 1, table2, table3 or minimise opening hour, close after last, or minimise simultanous guests?
-
-
-% reifiable (A #= B) #<==> R make r concrete(0 or 1)
-% R #= R1 + R2 + R3
-
-
-% table(number, persons, time, date, menu)
 
 
 
