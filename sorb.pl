@@ -25,10 +25,27 @@ reservation(A, B, C, D, [reservation,for,7,on,march,18,preferably,for,standard,m
 % test_dcg returns the input_phrase after applying the dcg as a list with relevant information.
 test_dcg(Input_phrase, Output_list):-
     reservation(Output_list, Input_phrase, []).
-    
-   
 
+% convert_input(+[Phrase|Phrases], -[Reservation|Reservations])
+% Reservations is the dcg translated list of input phrases.    
+convert_input([], []).
+convert_input([Phrase|Phrases], [Reservation|Reservations]):-
+    reservation(Reservation, Phrase, []),
+    convert_input(Phrases, Reservations).
 
+/*
+convert_input([[table,for,2,at,20,’:’,00,on,18,march],
+[we,would,like,a,table,for,5,preferably,at,8,pm,on,18,’/’,03],
+[please,can,we,have,a,table,for,3,for,the,theatre,menu,on,march,18,th],
+[can,i,book,a,table,at,9,pm,for,2,people,on,the,18,th,of,march,for,the,standard,menu,please],
+[reserve,us,a,table,on,march,18,for,a,party,of,4,for,the,standard,menu],
+[9,people,on,18,th,of,march],
+[book,6,of,us,in,on,18,march,at,20,’:’,00],
+[reservation,for,7,on,march,18,preferably,for,standard,menu,at,7,oclock]], Answer).
+
+*/
+
+%% DCG %%
 
 reservation([A, B, C, D]) --> reservation_part(A), reservation_part(B), reservation_part(C), reservation_part(D).
 
@@ -76,11 +93,18 @@ menu(M) --> [M, menu].
 % eat time = 1h for theatre menu, 2h for standard menu
 % the restaurant optimizes bookings, eg: prefer max persons
 
+% the constrained system was based around the box stacking example in the lecture slides.
+% I did not understand how I could do this input_phrase per input_phrase.
+% the resulting solution is not general, eg: I have to specify how many correct answers there will be.
+
+test_constraints():-
+    book_tables(_).
+
 % "received" dining requests
 
 :- block res_request(-,-,-,-,-).
 
-% 4 valid reservations (where 1 < persons < 5)
+% there are 4 valid reservations (where 1 < persons < 5)
 res_request(1,2,20,18,_).
 res_request(2,5,8,18,_).
 res_request(3,3,_,18,1).
@@ -89,7 +113,6 @@ res_request(5,4,_,18,2).
 res_request(6,9,_,18,_).
 res_request(7,6,20,18,_).
 res_request(8,7,7,18,2).
-
 
 constrain_dinings([],[],[]).
 constrain_dinings([Dining|Dinings],
